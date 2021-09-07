@@ -10,7 +10,8 @@ import sys
 # Parameters to be extracted to the command line
 #
 lookback = 24*30
-cloudAccount = "AWS: RedLock Demo Account"
+#cloudAccount = "AWS: RedLock Demo Account"
+cloudAccount = "lsmith_aws_panw"
 
 from datetime import datetime
 
@@ -114,10 +115,14 @@ allSGsRQL= \
 """) % (cloudAccount, lookback)
 allSGsResults = execute('POST', '%s/search/config' % CONFIG['url'], token, ca_bundle, allSGsRQL)
 #print(json.dumps(allSGs, indent=3, sort_keys=True))
+#with open('sgs.json', 'w') as outfile:    json.dump(allSGsResults, outfile)
 
 allSGs = set()
+allSGNames = dict()
 for i in allSGsResults['data']['items']:
-    allSGs.add(i['data']['groupId'])
+    sg = i['data']['groupId']
+    allSGs.add(sg)
+    allSGNames[sg]   = i['data']['groupName']
 #    output(i['data']['groupId'])
 output("All SGs: %d" % (len(allSGs)))
 output(allSGs)
@@ -126,3 +131,9 @@ output("")
 unusedSGs = allSGs.difference(activeSGs)
 output("Unused SGs: %d" % (len(unusedSGs)))
 output(unusedSGs)
+output("")
+
+output(f"{'Security Group ID':<20}: Security Group Name")
+output("-------------------  -----------------------")
+for i in unusedSGs:
+    output(f"{i:<20}: {allSGNames[i]}")
