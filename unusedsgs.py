@@ -133,7 +133,7 @@ allSGs = set()
 allSGNames = dict()
 for i in allSGsResults['data']['items']:
     sg = i['data']['groupId']
-    if not i['deleted']:
+    if i['deleted'] == False:
         allSGs.add(sg)
         allSGNames[sg] = i['data']['groupName']
 if DEBUG_MODE: 
@@ -147,7 +147,7 @@ if DEBUG_MODE:
     output(unusedSGs)
     output("")
 
-output("Unused Security Groups in the '%s' AWS account\n" % (CLOUD_ACCOUNT))
+output("%d of %d Unused Security Groups in the '%s' AWS account\n" % (len(unusedSGs), len(allSGs), CLOUD_ACCOUNT))
 output(f"{'Security Group ID':<20}  Security Group Name")
 output("--------------------  -----------------------")
 for i in unusedSGs:
