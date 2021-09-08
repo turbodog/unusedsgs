@@ -7,15 +7,14 @@ import requests
 import sys
 
 #
-# Parameters to be extracted to the command line
+# Default configuration
 #
-lookback = 24*30
-#cloudAccount = "AWS: RedLock Demo Account"
-cloudAccount = "lsmith_aws_panw"
+LOOKBACK = 24*30
+CLOUD_ACCOUNT = ""
 
 from datetime import datetime
 
-DEBUG_MODE = False
+# Helpers
 
 def output(output_data=''):
     print(output_data)
@@ -58,7 +57,10 @@ def execute(action, url, token, ca_bundle=None, requ_data=None):
             output(api_response.content)
     return result
 
+# Configuration
 
+DEBUG_MODE = False
+LOG_JSON = False
 
 CONFIG = {}
 try:
@@ -68,10 +70,14 @@ except ImportError:
     exit(1)
 
 ca_bundle = None
-token = login(CONFIG['url'], CONFIG['access_key'], CONFIG['secret_key'], ca_bundle)
-#output(token)
 
-#AND dest.resource IN ( resource where securitygroup.name = 'Allow All' ) 
+# Main
+
+if DEBUG_MODE and LOG_JSON: output("Writing query results to disk")
+
+token = login(CONFIG['url'], CONFIG['access_key'], CONFIG['secret_key'], ca_bundle)
+if DEBUG_MODE: output(token)
+
 activeSGsRQL= \
 ("""
 {
@@ -84,10 +90,13 @@ activeSGsRQL= \
      }
   }
 }
-""") % (cloudAccount, lookback)
-#output(activeSGsRQL)
+""") % (CLOUD_ACCOUNT, LOOKBACK)
+if DEBUG_MODE: output(activeSGsRQL)
 activeSGsFlowLogs = execute('POST', '%s/search' % CONFIG['url'], token, ca_bundle, activeSGsRQL)
-#print(json.dumps(activeSGsFlowLogs, indent=3, sort_keys=True))
+if DEBUG_MODE: print(json.dumps(activeSGsFlowLogs, indent=3, sort_keys=True))
+if LOG_JSON: 
+    with open('activesgflows.json', 'w') as outfile:    
+        json.dump(activeSGsFlowLogs, outfile, indent=3, sort_keys=True)
 
 activeSGs = set()
 for i in activeSGsFlowLogs['data']['nodes']:
@@ -96,9 +105,10 @@ for i in activeSGsFlowLogs['data']['nodes']:
         if SGs[0] != "N/A":
             for j in SGs:
                 activeSGs.add(j)
-output("Active SGs: %d" % (len(activeSGs)))
-output(activeSGs)
-output("")
+if DEBUG_MODE: 
+    output("Active SGs: %d" % (len(activeSGs)))
+    output(activeSGs)
+    output("")
 
 allSGsRQL= \
 ("""
@@ -112,28 +122,33 @@ allSGsRQL= \
      }
   }
 }
-""") % (cloudAccount, lookback)
+""") % (CLOUD_ACCOUNT, LOOKBACK)
 allSGsResults = execute('POST', '%s/search/config' % CONFIG['url'], token, ca_bundle, allSGsRQL)
-#print(json.dumps(allSGs, indent=3, sort_keys=True))
-#with open('sgs.json', 'w') as outfile:    json.dump(allSGsResults, outfile)
+if DEBUG_MODE: print(json.dumps(allSGs, indent=3, sort_keys=True))
+if LOG_JSON: 
+    with open('sgs.json', 'w') as outfile:    
+        json.dump(allSGsResults, outfile, indent=3, sort_keys=True)
 
 allSGs = set()
 allSGNames = dict()
 for i in allSGsResults['data']['items']:
     sg = i['data']['groupId']
-    allSGs.add(sg)
-    allSGNames[sg]   = i['data']['groupName']
-#    output(i['data']['groupId'])
-output("All SGs: %d" % (len(allSGs)))
-output(allSGs)
-output("")
+    if not i['deleted']:
+        allSGs.add(sg)
+        allSGNames[sg] = i['data']['groupName']
+if DEBUG_MODE: 
+    output("All SGs: %d" % (len(allSGs)))
+    output(allSGs)
+    output("")
 
 unusedSGs = allSGs.difference(activeSGs)
-output("Unused SGs: %d" % (len(unusedSGs)))
-output(unusedSGs)
-output("")
+if DEBUG_MODE:
+    output("Unused SGs: %d" % (len(unusedSGs)))
+    output(unusedSGs)
+    output("")
 
-output(f"{'Security Group ID':<20}: Security Group Name")
-output("-------------------  -----------------------")
+output("Unused Security Groups in the '%s' AWS account\n" % (CLOUD_ACCOUNT))
+output(f"{'Security Group ID':<20}  Security Group Name")
+output("--------------------  -----------------------")
 for i in unusedSGs:
     output(f"{i:<20}: {allSGNames[i]}")
