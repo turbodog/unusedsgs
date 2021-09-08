@@ -7,4 +7,11 @@ CONFIG = {
         'access_key': '1234',
         'secret_key': 'abcd'
 }
+
+DEBUG_MODE = False
+LOG_JSON = True
+
+CLOUD_ACCOUNT = "my cloud account"
+# Usage lookback in hours
+LOOKBACK = 24*30
 ```
