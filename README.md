@@ -9,9 +9,12 @@ CONFIG = {
 }
 
 DEBUG_MODE = False
-LOG_JSON = True
+
+# Write RQL output to disk
+LOG_JSON = False
 
 CLOUD_ACCOUNT = "my cloud account"
+
 # Usage lookback in hours
 LOOKBACK = 24*30
 ```
